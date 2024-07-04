@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:todo_app_provider/constants/constants.dart';
+import 'package:todo_app_provider/viewmodel/task_viewModel.dart';
 
 class TaskScreen extends StatelessWidget {
   const TaskScreen({super.key});
@@ -54,6 +56,7 @@ class CustomDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     double sh = MediaQuery.of(context).size.height;
     double sw = MediaQuery.of(context).size.width;
+    final taskprovider = Provider.of<TaskViewModel>(context, listen: false);
     return Dialog(
       backgroundColor: secondary,
       shape: RoundedRectangleBorder(
@@ -82,12 +85,15 @@ class CustomDialog extends StatelessWidget {
                 "What do you want to do?",
                 style: TextStyle(color: textBlue, fontSize: 18),
               ),
-              const CustomTextField(
+              CustomTextField(
                 hint: "Enter a task",
                 icon: null,
+                onChanged: (value) {
+                  taskprovider.setTaskName(value);
+                },
               ),
               const SizedBox(height: 50),
-              const Text(
+              Text(
                 "Due Date",
                 style: TextStyle(color: textBlue, fontSize: 18),
               ),
@@ -95,14 +101,15 @@ class CustomDialog extends StatelessWidget {
                 hint: "Select a Date",
                 icon: Icons.calendar_today,
                 readOnly: true,
-                onTap: () {
-                  showDatePicker(
+                controller: taskprovider.dateController,
+                onTap: () async {
+                  DateTime? date = await showDatePicker(
                     context: context,
                     initialDate: DateTime.now(),
                     firstDate: DateTime.now(),
                     lastDate: DateTime(DateTime.now().year + 1),
                   );
-                
+                  taskprovider.setTaskDate(date);
                 },
               ),
               const SizedBox(height: 20),
@@ -110,26 +117,35 @@ class CustomDialog extends StatelessWidget {
                 hint: "Select a Time",
                 icon: Icons.access_time,
                 readOnly: true,
-                onTap: () {
-                  showTimePicker(
+                controller: taskprovider.timeController,
+                onTap: () async {
+                  TimeOfDay? time = await showTimePicker(
                     context: context,
                     initialTime: TimeOfDay.now(),
                   );
-                
+
+                  taskprovider.setTaskTime(time);
                 },
               ),
               const SizedBox(height: 50),
               Align(
                 alignment: Alignment.center,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      backgroundColor: textWhite,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
                     ),
-                    backgroundColor: textWhite,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  ),
-                  onPressed: (){}, child: const Text("Create task", style: TextStyle(color: secondary),)),
+                    onPressed: () async {
+                      await taskprovider.addTask();
+                    },
+                    child: const Text(
+                      "Create task",
+                      style: TextStyle(color: secondary),
+                    )),
               )
             ],
           ),
@@ -140,25 +156,37 @@ class CustomDialog extends StatelessWidget {
 }
 
 class CustomTextField extends StatelessWidget {
-  const CustomTextField({
+  CustomTextField({
     super.key,
     required this.hint,
     required this.icon,
     this.onTap,
     this.readOnly = false,
+    this.onChanged,
+    this.controller
   });
   final String hint;
   final IconData? icon;
-  final void Function()? onTap; 
+  final void Function()? onTap;
   final bool readOnly;
+  final void Function(String)? onChanged;
+
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       readOnly: readOnly,
+      controller: controller,
+      onChanged: onChanged,
       style: const TextStyle(color: textWhite),
       decoration: InputDecoration(
-        suffixIcon: InkWell(onTap:onTap,child: Icon(icon, color: textWhite,)),
+        suffixIcon: InkWell(
+            onTap: onTap,
+            child: Icon(
+              icon,
+              color: textWhite,
+            )),
         hintText: hint,
         hintStyle: const TextStyle(color: textBlue),
         enabledBorder: const UnderlineInputBorder(
